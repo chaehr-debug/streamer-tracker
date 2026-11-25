@@ -30,7 +30,6 @@ async function api(path, opts) {
 
 // ---- 집계 PC(에이전트) ----
 // 치지직/트위치 집계는 서버가 아니라, 에이전트가 설치돼 켜져 있는 PC 중 한 대가 처리한다.
-const AGENT_GUIDE_URL = 'https://github.com/chaehr-debug/streamer-tracker/tree/main/agent#readme';
 const NO_AGENT_MESSAGE =
   '지금 켜져 있는 집계 PC가 없어 요청을 취소했습니다. 상단의 "집계 PC" 안내를 참고해 본인 PC에 에이전트를 설치하거나, 설치된 PC를 켠 뒤 다시 시도해주세요.';
 let agentState = { known: false, agents: [] };
@@ -70,7 +69,7 @@ function renderAgentHelp() {
     ${list}
     <div class="help-actions">
       <button type="button" class="install-btn" data-install-agent>⬇ 내 PC에 에이전트 설치 (Windows)</button>
-      <a href="${AGENT_GUIDE_URL}" target="_blank" rel="noopener" style="align-self:center">자세한 설치 안내</a>
+      <a href="/guide.html#install" style="align-self:center">자세한 설치 안내</a>
     </div>
     ${installSteps()}`;
 }

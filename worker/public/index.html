@@ -49,6 +49,8 @@
   .agent-help ol { margin: 6px 0; padding-left: 20px; }
   .agent-help .help-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
   .install-btn { font-size: 12px; padding: 6px 10px; }
+  .guide-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .guide-link:hover { color: var(--text); }
   .agent-help code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
   .layout {
     display: grid;
@@ -196,6 +198,7 @@
 <header>
   <h1>📺 스트리머 활동 관리</h1>
   <div class="header-actions">
+    <a href="/guide.html" class="guide-link">📖 사용 안내</a>
     <button type="button" id="agentStatus" class="agent-status" title="집계 PC 상태">
       <span class="dot"></span><span class="label">집계 PC 확인 중…</span>
     </button>

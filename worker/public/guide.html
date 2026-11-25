@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>사용 안내 · 스트리머 활동 관리</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e8e9ec;
+    --muted: #9aa0ac;
+    --accent: #4f8cff;
+    --danger: #e5484d;
+    --ok: #3ecf8e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header a { color: var(--accent); text-decoration: none; font-size: 14px; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  nav.toc { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  nav.toc a {
+    font-size: 13px; color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+  }
+  nav.toc a:hover { color: var(--text); }
+  section {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; margin-bottom: 16px;
+  }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 18px 0 6px; }
+  p { margin: 6px 0; }
+  ol, ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code { background: var(--bg); padding: 1px 6px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
+  td { overflow-wrap: anywhere; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .callout { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--bg); border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .callout.warn { border-color: var(--danger); }
+  .btn {
+    display: inline-block; background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+  }
+  .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .flow div { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 13px; }
+  .flow b { display: block; font-size: 14px; margin-bottom: 2px; }
+  @media (max-width: 640px) {
+    section { padding: 16px; }
+    .flow { grid-template-columns: 1fr; }
+    table { font-size: 13px; }
+    th, td { padding: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>📖 사용 안내</h1>
+  <a href="/">← 스트리머 활동 관리로 돌아가기</a>
+</header>
+
+<main>
+  <nav class="toc">
+    <a href="#overview">한눈에 보기</a>
+    <a href="#agent">집계 PC (중요)</a>
+    <a href="#install">내 PC에 설치</a>
+    <a href="#chzzk">치지직</a>
+    <a href="#twitch">Twitch</a>
+    <a href="#youtube">유튜브</a>
+    <a href="#screening">스트리머 심사</a>
+    <a href="#faq">문제 해결</a>
+  </nav>
+
+  <section id="overview">
+    <h2>한눈에 보기</h2>
+    <p>이터널 리턴 스트리머들의 <b>치지직 · Twitch · 유튜브</b> 월간 활동을 한곳에서 관리하는 도구입니다.</p>
+    <table>
+      <tr><th>플랫폼</th><th>집계 항목</th><th>처리 방식</th></tr>
+      <tr><td>치지직</td><td>지난달 방송 시간, 평균·최고 시청자</td><td>집계 PC 필요</td></tr>
+      <tr><td>Twitch</td><td>지난달 <b>이터널 리턴 카테고리</b> 방송 시간·횟수, 평균·최고 시청자, 팔로워 증감</td><td>집계 PC 필요</td></tr>
+      <tr><td>유튜브</td><td>지난달 업로드 영상 수, 평균 조회수</td><td>서버가 바로 처리</td></tr>
+    </table>
+    <h3>화면 구성</h3>
+    <ul>
+      <li><b>스트리머 관리</b> — 왼쪽에서 추가, 목록에서 선택하면 오른쪽에 월별 기록. 목록은 드래그로 순서 변경, <code>관리</code>를 누르면 여러 명 선택 삭제.</li>
+      <li><b>지난달 전체 현황</b> — 플랫폼별 지난달 지표 표. 열 제목을 눌러 정렬, <code>CSV로 내보내기</code>로 엑셀에서 열기.</li>
+      <li><b>스트리머 심사</b> (치지직 탭) — 정식 등록 전 후보를 기준에 따라 걸러내는 단계.</li>
+    </ul>
+  </section>
+
+  <section id="agent">
+    <h2>집계 PC (중요)</h2>
+    <p>치지직·Twitch 통계 사이트는 봇 차단이 있어 서버가 직접 가져올 수 없습니다. 그래서 <b>에이전트가 설치돼 켜져 있는 PC</b>가 실제 Chrome으로 데이터를 가져옵니다.</p>
+    <div class="flow">
+      <div><b>① 버튼 클릭</b>사이트에 집계 요청이 등록됨</div>
+      <div><b>② 집계 PC가 가져감</b>켜져 있는 PC 중 한 대가 Chrome으로 수집</div>
+      <div><b>③ 결과 반영</b>몇 초~수 분 뒤 화면에 표시</div>
+    </div>
+    <p>오른쪽 위 표시로 상태를 확인하세요.</p>
+    <table>
+      <tr><td><span class="pill"><span class="dot" style="background:var(--ok)"></span>집계 PC n대 연결됨</span></td><td>집계 가능. 누르면 어떤 PC가 연결돼 있는지 보입니다.</td></tr>
+      <tr><td><span class="pill" style="border-color:var(--danger)"><span class="dot" style="background:var(--danger)"></span>켜진 집계 PC 없음</span></td><td>치지직·Twitch 집계/검색이 실행되지 않습니다. 요청하면 몇 초 안에 취소되고 안내가 뜹니다. (유튜브는 정상 동작)</td></tr>
+    </table>
+    <div class="callout">여러 PC에 설치해 두면 그중 켜져 있는 한 대가 처리합니다. 같은 작업을 두 PC가 중복 처리하지 않으니 많이 설치할수록 안정적입니다.</div>
+  </section>
+
+  <section id="install">
+    <h2>내 PC에 에이전트 설치 (Windows, 약 3분)</h2>
+    <p><a class="btn" href="/api/agent-installer" download="StreamerTracker-Agent-Setup.cmd">⬇ 설치 파일 받기</a>
+      <span class="muted">&nbsp;메인 화면 오른쪽 위 버튼과 같습니다.</span></p>
+    <ol>
+      <li>설치 파일 <code>StreamerTracker-Agent-Setup.cmd</code>를 받습니다. 브라우저가 "위험할 수 있는 파일"이라고 하면 <b>계속 / 보관</b>을 누르세요.</li>
+      <li>받은 파일을 실행합니다. "Windows의 PC 보호" 창이 뜨면 <b>추가 정보 → 실행</b>.</li>
+      <li>검은 창에서 설치가 자동으로 진행됩니다. Node.js가 없으면 설치할지 물어보니 <b>Y</b>를 누르세요.</li>
+      <li>"설치 완료"가 나오면 창을 닫고 사이트를 새로고침 → 오른쪽 위에 내 PC 이름이 보이면 끝입니다.</li>
+    </ol>
+    <div class="callout warn">설치 후 <b>수집용 Chrome 창</b>이 따로 하나 뜹니다. 평소 쓰는 Chrome과는 별개의 창이니 <b>닫지 말고 최소화</b>해 두세요.</div>
+    <ul class="muted">
+      <li>윈도우에 로그인할 때마다 자동으로 실행됩니다.</li>
+      <li>같은 설치 파일을 다시 실행하면 최신 버전으로 업데이트됩니다.</li>
+      <li>설치 위치: <code>%LOCALAPPDATA%\StreamerTrackerAgent</code> · 제거: 그 폴더의 <code>uninstall.ps1</code> 실행</li>
+      <li>설치 파일에는 사이트 접속 키가 들어 있으니 외부에 공유하지 마세요.</li>
+    </ul>
+  </section>
+
+  <section id="chzzk">
+    <h2>치지직</h2>
+    <h3>스트리머 추가</h3>
+    <ul>
+      <li><b>1명씩 추가</b> — 이름 검색 → 후보 중 맞는 채널 선택 → 상태·메모 입력 → <code>이 채널로 추가</code></li>
+      <li><b>여러 명 한번에</b> — 한 줄에 한 명씩 이름 입력 → <code>일괄 검색</code> → 결과 확인(후보 변경·제외 가능) → <code>선택한 항목 모두 추가</code></li>
+    </ul>
+    <h3>집계</h3>
+    <ul>
+      <li>한 명: 스트리머 선택 → <code>지난달 집계 실행</code></li>
+      <li>전체: 오른쪽 위 <code>치지직 전체 집계 실행</code> (인원에 따라 수 분)</li>
+    </ul>
+  </section>
+
+  <section id="twitch">
+    <h2>Twitch</h2>
+    <ul>
+      <li>지역 탭(<b>NA/EU · SA/ASIA · JP · TW</b>)별로 관리합니다.</li>
+      <li>추가: 이름(표시용)과 트위치 핸들(<code>twitch.tv/핸들</code>의 핸들) 입력. 여러 명은 한 줄에 <code>이름,핸들</code>.</li>
+      <li>집계: 지역 탭을 고른 뒤 <code>Twitch [지역] 집계 실행</code>. 지표는 <b>Eternal Return 카테고리 방송만</b> 집계합니다(팔로워 증감은 전체 기준).</li>
+      <li>추가 직후 <code>지난달 집계 실행</code>으로 핸들이 맞는지 확인해 보세요.</li>
+    </ul>
+  </section>
+
+  <section id="youtube">
+    <h2>유튜브</h2>
+    <ul>
+      <li>추가: 이름과 채널 링크(채널 주소, <code>@핸들</code>, 영상 링크 모두 가능).</li>
+      <li>집계: 지난달 업로드한 영상 수와 그 영상들의 평균 조회수. 조회수는 지금 기준이라 시간이 지나면 늘어날 수 있습니다.</li>
+      <li>집계 PC 없이 서버가 바로 처리합니다. 치지직·Twitch 스트리머도 유튜브 링크가 있으면 <code>유튜브 지난달 집계</code>를 쓸 수 있습니다.</li>
+    </ul>
+  </section>
+
+  <section id="screening">
+    <h2>스트리머 심사 (치지직)</h2>
+    <ol>
+      <li>치지직 탭 → <b>스트리머 심사</b> → 후보 이름을 검색해 <code>심사 명단에 추가</code></li>
+      <li><code>지난달 활동 집계</code> 실행</li>
+      <li>지난달 <b>이터널 리턴 카테고리</b> 기준
+        <b>방송 30시간 이상 + 평균 시청자 30명 이상</b>이면 자동으로 정식 스트리머(크리에이터)로 등록되고 명단에서 빠집니다.
+        미달이면 <b>기준 미달</b>로 남습니다.</li>
+    </ol>
+  </section>
+
+  <section id="faq">
+    <h2>문제 해결</h2>
+    <table>
+      <tr><th>증상</th><th>해결</th></tr>
+      <tr><td>"켜진 집계 PC가 없어 요청을 취소했습니다"</td><td>집계 PC가 하나도 안 켜져 있습니다. 내 PC에 에이전트를 설치하거나, 설치된 PC를 켠 뒤 다시 시도하세요.</td></tr>
+      <tr><td>"앞에 처리 중인 작업이 n개…"</td><td>다른 집계(전체 집계 등)가 먼저 돌고 있습니다. 끝나면 자동으로 이어서 처리됩니다.</td></tr>
+      <tr><td>설치했는데 내 PC가 안 보임</td><td><code>%LOCALAPPDATA%\StreamerTrackerAgent\logs\agent.log</code> 마지막 줄을 확인하고, 설치 파일을 다시 실행해 보세요.</td></tr>
+      <tr><td>"Chrome 또는 Edge를 찾지 못했습니다"</td><td>Chrome을 설치한 뒤 설치 파일을 다시 실행하세요.</td></tr>
+      <tr><td>"검색 결과가 없습니다"</td><td>치지직 표시 이름과 정확히 같은지 확인하세요. 띄어쓰기·특수문자 차이로 못 찾는 경우가 많습니다.</td></tr>
+      <tr><td>보안 확인(체크포인트) 오류</td><td>수집용 Chrome 창에서 <code>viewership.softc.one</code>을 한 번 직접 열어본 뒤 다시 시도하세요.</td></tr>
+      <tr><td>Twitch 지표가 0</td><td>지난달 이터널 리턴 카테고리 방송이 없으면 0입니다. 핸들이 맞는지도 확인하세요.</td></tr>
+    </table>
+    <p class="muted">더 자세한 기술 문서: <a href="https://github.com/chaehr-debug/streamer-tracker#readme" target="_blank" rel="noopener" style="color:var(--accent)">GitHub README</a></p>
+  </section>
+</main>
+</body>
+</html>
