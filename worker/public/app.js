@@ -68,9 +68,42 @@ function renderAgentHelp() {
   box.innerHTML = `
     <strong>집계 PC</strong> — 치지직/트위치 데이터는 에이전트가 설치돼 켜져 있는 PC 중 한 대가 가져옵니다.
     ${list}
-    <div>본인 PC에서도 집계를 처리하게 하려면: <a href="${AGENT_GUIDE_URL}" target="_blank" rel="noopener">에이전트 설치 안내</a>
-    (설치 파일 실행 → 관리자에게 받은 접속 키 입력, 약 3분)</div>`;
+    <div class="help-actions">
+      <button type="button" class="install-btn" data-install-agent>⬇ 내 PC에 에이전트 설치 (Windows)</button>
+      <a href="${AGENT_GUIDE_URL}" target="_blank" rel="noopener" style="align-self:center">자세한 설치 안내</a>
+    </div>
+    ${installSteps()}`;
 }
+
+function installSteps() {
+  return `
+    <ol>
+      <li>버튼을 누르면 <code>StreamerTracker-Agent-Setup.cmd</code> 파일이 내려받아집니다.
+        (브라우저가 "위험할 수 있는 파일"이라고 하면 <b>계속/보관</b>을 누르세요)</li>
+      <li>내려받은 파일을 실행합니다. "Windows의 PC 보호" 창이 뜨면 <b>추가 정보 → 실행</b>.</li>
+      <li>검은 창에서 설치가 자동으로 진행됩니다(약 2~3분). Node.js가 없으면 설치할지 물어보니 <b>Y</b>.</li>
+      <li>"설치 완료"가 나오면 창을 닫고 이 페이지를 새로고침 — 위에 내 PC 이름이 보이면 끝입니다.</li>
+    </ol>
+    <div class="muted">설치 후에는 윈도우 로그인 때마다 자동 실행됩니다. 따로 뜨는 수집용 Chrome 창은 닫지 말고 최소화해 두세요.
+    이미 설치한 PC에서 다시 실행하면 최신 버전으로 업데이트됩니다.</div>`;
+}
+
+function downloadAgentInstaller() {
+  const a = document.createElement('a');
+  a.href = '/api/agent-installer';
+  a.download = 'StreamerTracker-Agent-Setup.cmd';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  const box = document.getElementById('agentHelp');
+  box.style.display = 'block';
+  renderAgentHelp();
+  toast('설치 파일을 내려받았습니다. 아래 안내대로 실행해주세요.', 6000);
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#installAgentBtn, [data-install-agent]')) downloadAgentInstaller();
+});
 
 document.getElementById('agentStatus').addEventListener('click', () => {
   const box = document.getElementById('agentHelp');

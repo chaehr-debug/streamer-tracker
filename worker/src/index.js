@@ -147,6 +147,71 @@ async function reapStaleJobs(db) {
     .run();
 }
 
+// ---- 에이전트 설치 파일 ----
+// 받은 .cmd를 실행하면: GitHub에서 최신 agent 폴더를 내려받아 %LOCALAPPDATA%\StreamerTrackerAgent 에
+// 풀고(.env·로그·node_modules는 유지), setup.ps1을 접속 키와 함께 실행한다.
+// cmd는 따옴표/특수문자 해석이 까다로워 접속 키가 깨질 수 있으므로, PowerShell 스크립트 전체를
+// -EncodedCommand(UTF-16LE base64)로 넘긴다. 이 스크립트는 ASCII만 쓴다(한글 안내는 setup.ps1이 출력).
+const AGENT_ZIP_URL = 'https://github.com/chaehr-debug/streamer-tracker/archive/refs/heads/main.zip';
+
+function psQuote(s) {
+  return "'" + String(s).replace(/'/g, "''") + "'";
+}
+
+function toUtf16LeBase64(str) {
+  let bin = '';
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    bin += String.fromCharCode(c & 0xff, c >> 8);
+  }
+  return btoa(bin);
+}
+
+function agentInstaller(workerUrl, secret) {
+  const ps = [
+    "$ErrorActionPreference = 'Stop'",
+    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
+    "$ProgressPreference = 'SilentlyContinue'",
+    "$dest = Join-Path $env:LOCALAPPDATA 'StreamerTrackerAgent'",
+    "$zip = Join-Path $env:TEMP 'streamer-tracker-agent.zip'",
+    "$tmp = Join-Path $env:TEMP 'streamer-tracker-agent-src'",
+    'try {',
+    "  Write-Host '[1/2] Downloading agent...' -ForegroundColor Cyan",
+    `  Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(AGENT_ZIP_URL)} -OutFile $zip`,
+    '  if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }',
+    '  Expand-Archive -Path $zip -DestinationPath $tmp -Force',
+    "  $src = Join-Path (Get-ChildItem $tmp -Directory | Select-Object -First 1).FullName 'agent'",
+    '  New-Item -ItemType Directory -Force -Path $dest | Out-Null',
+    "  Copy-Item -Path (Join-Path $src '*') -Destination $dest -Recurse -Force",
+    '  Remove-Item $zip, $tmp -Recurse -Force -ErrorAction SilentlyContinue',
+    "  Write-Host ('      -> ' + $dest)",
+    "  Write-Host '[2/2] Running setup...' -ForegroundColor Cyan",
+    `  & (Join-Path $dest 'setup.ps1') -WorkerUrl ${psQuote(workerUrl)} -Secret ${psQuote(secret)}`,
+    '} catch {',
+    "  Write-Host ('Install failed: ' + $_.Exception.Message) -ForegroundColor Red",
+    '}',
+  ].join('\r\n');
+
+  const cmd = [
+    '@echo off',
+    'title Streamer Tracker Agent Setup',
+    'echo Streamer Tracker - collection agent installer',
+    'echo.',
+    `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${toUtf16LeBase64(ps)}`,
+    'echo.',
+    'pause',
+    '',
+  ].join('\r\n');
+
+  return new Response(cmd, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="StreamerTracker-Agent-Setup.cmd"',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -510,6 +575,11 @@ export default {
         .bind(platform, JSON.stringify({ platform, region }))
         .first();
       return json({ jobId: job.id });
+    }
+
+    // "내 PC에 설치" 버튼: 사이트에 로그인한 사람에게 접속 키가 들어간 설치 파일(.cmd)을 내려준다.
+    if (path === '/api/agent-installer' && request.method === 'GET') {
+      return agentInstaller(url.origin, env.AGENT_SECRET);
     }
 
     if (path === '/api/agents' && request.method === 'GET') {

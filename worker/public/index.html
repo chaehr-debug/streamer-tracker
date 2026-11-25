@@ -46,6 +46,10 @@
   }
   .agent-help ul { margin: 6px 0; padding-left: 18px; }
   .agent-help a { color: var(--accent); }
+  .agent-help ol { margin: 6px 0; padding-left: 20px; }
+  .agent-help .help-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .install-btn { font-size: 12px; padding: 6px 10px; }
+  .agent-help code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
   .layout {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -195,6 +199,7 @@
     <button type="button" id="agentStatus" class="agent-status" title="집계 PC 상태">
       <span class="dot"></span><span class="label">집계 PC 확인 중…</span>
     </button>
+    <button type="button" id="installAgentBtn" class="secondary install-btn" title="이 PC에서도 치지직/트위치 집계를 처리하도록 에이전트를 설치합니다 (Windows)">⬇ 내 PC에 에이전트 설치</button>
     <button id="collectAllBtn">치지직 전체 집계 실행</button>
   </div>
 </header>
