@@ -1,0 +1,35 @@
+# deps
+node_modules/
+
+# secrets
+.env
+**/.env
+auth.json
+auth-cookies.json
+twitch-agent-package.zip
+
+# local data / logs
+data.db
+data.db-*
+logs/
+chrome-debug-profile/
+.wrangler/
+
+# binaries
+bin/
+
+# crawl/debug dumps
+*.png
+connected-current-state.html
+inspect-initial.html
+plain-fetch-result.html
+search-dropdown.html
+search-results.html
+captured-network.json
+connected-inputs.json
+search-candidates.json
+search-result-links.json
+
+# data dumps
+worker/migration-data.json
+worker/migration.sql

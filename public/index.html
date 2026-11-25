@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>스트리머 활동 관리</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e8e9ec;
+    --muted: #9aa0ac;
+    --accent: #4f8cff;
+    --danger: #e5484d;
+    --ok: #3ecf8e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 16px;
+    padding: 16px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: 13px;
+    background: #10131a;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 9px;
+  }
+  input, select, textarea { width: 100%; margin-bottom: 8px; }
+  button {
+    cursor: pointer;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.secondary { background: #10131a; color: var(--text); }
+  button.danger { background: var(--danger); border-color: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .streamer-item {
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .streamer-item:hover { background: #1e222c; }
+  .streamer-item.active { background: #1c2740; border: 1px solid var(--accent); }
+  .badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #232838;
+    color: var(--muted);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .candidate {
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .candidate.selected { border-color: var(--accent); background: #1c2740; }
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1c2740;
+    border: 1px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: none;
+    max-width: 360px;
+    font-size: 13px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 12px 14px;
+    border-radius: 0;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .view { display: none; padding: 16px; }
+  .view.active { display: block; }
+  th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  th.sortable:hover { color: var(--text); }
+  th.sortable .arrow { color: var(--accent); margin-left: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📺 스트리머 활동 관리</h1>
+  <button id="collectAllBtn">전체 지난달 집계 실행</button>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="manage">스트리머 관리</button>
+  <button class="tab-btn" data-tab="overview">지난달 전체 현황</button>
+</div>
+
+<div class="view active" id="manageView">
+<div class="layout">
+  <div class="panel">
+    <h3 style="margin-top:0">스트리머 추가</h3>
+    <input id="searchName" placeholder="스트리머 이름 검색" />
+    <button id="searchBtn" class="secondary" style="width:100%">검색</button>
+    <div id="candidates"></div>
+    <div id="addForm" style="display:none; margin-top:10px;">
+      <select id="addStatus">
+        <option value="크리에이터">크리에이터</option>
+        <option value="파트너">파트너</option>
+      </select>
+      <textarea id="addMemo" placeholder="메모 (선택)" rows="2"></textarea>
+      <button id="confirmAddBtn" style="width:100%">이 채널로 추가</button>
+    </div>
+
+    <h3>스트리머 목록</h3>
+    <div id="streamerList"></div>
+  </div>
+
+  <div class="panel" id="detailPanel">
+    <div class="muted">왼쪽에서 스트리머를 선택하세요.</div>
+  </div>
+</div>
+</div>
+
+<div class="view" id="overviewView">
+  <div class="panel">
+    <div class="row" style="align-items:center; margin-bottom: 8px;">
+      <h2 style="margin:0" id="overviewTitle">지난달 전체 현황</h2>
+      <div style="text-align:right; flex:1">
+        <span class="muted">헤더를 클릭하면 정렬됩니다</span>
+        <button id="exportOverviewCsvBtn" class="secondary" style="margin-left:10px">CSV로 내보내기</button>
+      </div>
+    </div>
+    <table id="overviewTable">
+      <thead>
+        <tr>
+          <th class="sortable" data-key="name">이름<span class="arrow"></span></th>
+          <th class="sortable" data-key="status">상태<span class="arrow"></span></th>
+          <th class="sortable" data-key="broadcast_hours">방송 시간<span class="arrow"></span></th>
+          <th class="sortable" data-key="avg_viewers">평균 시청자<span class="arrow"></span></th>
+          <th class="sortable" data-key="max_viewers">최대 시청자<span class="arrow"></span></th>
+          <th>수집 시각</th>
+        </tr>
+      </thead>
+      <tbody id="overviewBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
