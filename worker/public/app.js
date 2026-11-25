@@ -28,16 +28,107 @@ async function api(path, opts) {
   return data;
 }
 
-// PC 에이전트가 작업을 가져가서 처리할 때까지 폴링합니다.
+// ---- 집계 PC(에이전트) ----
+// 치지직/트위치 집계는 서버가 아니라, 에이전트가 설치돼 켜져 있는 PC 중 한 대가 처리한다.
+const AGENT_GUIDE_URL = 'https://github.com/chaehr-debug/streamer-tracker/tree/main/agent#readme';
+const NO_AGENT_MESSAGE =
+  '지금 켜져 있는 집계 PC가 없어 요청을 취소했습니다. 상단의 "집계 PC" 안내를 참고해 본인 PC에 에이전트를 설치하거나, 설치된 PC를 켠 뒤 다시 시도해주세요.';
+let agentState = { known: false, agents: [] };
+
+async function refreshAgentStatus() {
+  try {
+    agentState = await api('/api/agents');
+  } catch (e) {
+    agentState = { known: false, agents: [] };
+  }
+  const el = document.getElementById('agentStatus');
+  const label = el.querySelector('.label');
+  el.classList.remove('online', 'offline');
+  if (!agentState.known) {
+    label.textContent = '집계 PC 상태 알 수 없음';
+  } else if (agentState.agents.length === 0) {
+    el.classList.add('offline');
+    label.textContent = '켜진 집계 PC 없음';
+  } else {
+    el.classList.add('online');
+    const busy = agentState.agents.filter((a) => a.current_job_id).length;
+    label.textContent = `집계 PC ${agentState.agents.length}대 연결됨${busy ? ` (작업 중 ${busy})` : ''}`;
+  }
+  el.title = agentState.agents.map((a) => `${a.name}${a.current_job_id ? ' — 작업 중' : ''}`).join('\n') || '연결된 집계 PC 없음';
+  if (document.getElementById('agentHelp').style.display !== 'none') renderAgentHelp();
+}
+
+function renderAgentHelp() {
+  const box = document.getElementById('agentHelp');
+  const list = agentState.agents.length
+    ? `<ul>${agentState.agents
+        .map((a) => `<li>${escapeHtml(a.name)}${a.current_job_id ? ' — 작업 #' + a.current_job_id + ' 처리 중' : ' — 대기 중'}</li>`)
+        .join('')}</ul>`
+    : '<p>지금 연결된 집계 PC가 없습니다. 이 상태에서는 치지직/트위치 집계·검색이 실행되지 않습니다 (유튜브 집계는 PC 없이 동작).</p>';
+  box.innerHTML = `
+    <strong>집계 PC</strong> — 치지직/트위치 데이터는 에이전트가 설치돼 켜져 있는 PC 중 한 대가 가져옵니다.
+    ${list}
+    <div>본인 PC에서도 집계를 처리하게 하려면: <a href="${AGENT_GUIDE_URL}" target="_blank" rel="noopener">에이전트 설치 안내</a>
+    (설치 파일 실행 → 관리자에게 받은 접속 키 입력, 약 3분)</div>`;
+}
+
+document.getElementById('agentStatus').addEventListener('click', () => {
+  const box = document.getElementById('agentHelp');
+  const open = box.style.display === 'none';
+  box.style.display = open ? 'block' : 'none';
+  if (open) renderAgentHelp();
+});
+refreshAgentStatus();
+setInterval(refreshAgentStatus, 20000);
+
+async function cancelJob(jobId) {
+  await api(`/api/jobs/${jobId}/cancel`, { method: 'POST' }).catch(() => {});
+}
+
+// 집계 PC가 작업을 가져가서 처리할 때까지 폴링합니다.
+// - 켜진 집계 PC가 없으면 몇 초 안에 작업을 취소하고 알려준다(예전엔 90초 기다린 뒤 실패하고,
+//   작업은 남아 있다가 며칠 뒤 PC가 켜지면 뒤늦게 실행됐다).
+// - PC가 켜져 있으면 앞 작업(전체 집계 등)이 끝날 때까지 기다린다.
+// - timeoutMs는 PC가 작업을 시작한 뒤 기다리는 최대 시간이다.
 async function pollJob(jobId, { intervalMs = 2000, timeoutMs = 90000 } = {}) {
   const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
+  let noAgentSince = null;
+  let runningSince = null;
+  let queueToastShown = false;
+  while (true) {
     const job = await api(`/api/jobs/${jobId}`);
     if (job.status === 'done') return job.result;
     if (job.status === 'error') throw new Error(job.result?.error || '작업 처리 중 오류가 발생했습니다.');
+
+    if (job.status === 'pending') {
+      if (job.agentsOnline === 0) {
+        noAgentSince = noAgentSince || Date.now();
+        if (Date.now() - noAgentSince > 6000) {
+          await cancelJob(jobId);
+          refreshAgentStatus();
+          throw new Error(NO_AGENT_MESSAGE);
+        }
+      } else {
+        noAgentSince = null;
+        if (job.queueAhead > 0 && !queueToastShown) {
+          queueToastShown = true;
+          toast(`앞에 처리 중인 작업이 ${job.queueAhead}개 있어 순서를 기다리는 중입니다…`, 5000);
+        }
+      }
+      // 서버가 집계 PC 상태를 모르는 경우(구버전)는 예전처럼 timeoutMs 뒤 포기한다.
+      const pendingLimit = job.agentsOnline == null ? timeoutMs : 45 * 60 * 1000;
+      if (Date.now() - start > pendingLimit) {
+        await cancelJob(jobId);
+        throw new Error('시간 초과: 집계 PC가 작업을 가져가지 않아 요청을 취소했습니다. 잠시 후 다시 시도해주세요.');
+      }
+    } else if (job.status === 'running') {
+      runningSince = runningSince || Date.now();
+      if (Date.now() - runningSince > timeoutMs + 60000) {
+        throw new Error('집계 PC가 작업 중이지만 예상보다 오래 걸리고 있습니다. 잠시 후 새로고침해 결과를 확인해주세요.');
+      }
+    }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new Error('시간 초과: PC 에이전트가 응답하지 않습니다. 에이전트가 켜져 있는지 확인해주세요.');
 }
 
 function platformQuery() {

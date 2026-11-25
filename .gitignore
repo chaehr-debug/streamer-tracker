@@ -33,3 +33,6 @@ search-result-links.json
 # data dumps
 worker/migration-data.json
 worker/migration.sql
+
+# superseded by agent/
+twitch-agent-package/

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS streamers (
   channel_href TEXT,
   status TEXT DEFAULT '크리에이터',
   memo TEXT DEFAULT '',
+  sort_order INTEGER DEFAULT 0,
   youtube_href TEXT,          -- 선택: 유튜브 채널/영상 링크. 있으면 월별 업로드 영상 평균 조회수도 집계.
   youtube_channel_id TEXT,    -- youtube_href를 최초 집계 시 채널 ID로 해석해서 캐싱(매번 재해석 안 하도록)
   created_at TEXT DEFAULT (datetime('now'))
@@ -55,4 +56,10 @@ CREATE TABLE IF NOT EXISTS screening_candidates (
   collected_at TEXT,
   sort_order INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS agents (
+  name TEXT PRIMARY KEY,
+  platforms TEXT,                  -- 처리하는 플랫폼 (빈 문자열 = 전부)
+  current_job_id INTEGER,          -- 지금 처리 중인 job (없으면 NULL)
+  last_seen TEXT NOT NULL DEFAULT (datetime('now'))
 );

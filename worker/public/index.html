@@ -29,6 +29,23 @@
     align-items: center;
   }
   header h1 { font-size: 18px; margin: 0; }
+  .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .agent-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-size: 12px; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .agent-status:hover { color: var(--text); }
+  .agent-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .agent-status.online .dot { background: var(--ok); }
+  .agent-status.offline .dot { background: var(--danger); }
+  .agent-status.offline { color: var(--text); border-color: var(--danger); }
+  .agent-help {
+    margin: 12px 16px 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--panel); font-size: 13px; line-height: 1.6;
+  }
+  .agent-help ul { margin: 6px 0; padding-left: 18px; }
+  .agent-help a { color: var(--accent); }
   .layout {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -174,8 +191,14 @@
 <body>
 <header>
   <h1>📺 스트리머 활동 관리</h1>
-  <button id="collectAllBtn">치지직 전체 집계 실행</button>
+  <div class="header-actions">
+    <button type="button" id="agentStatus" class="agent-status" title="집계 PC 상태">
+      <span class="dot"></span><span class="label">집계 PC 확인 중…</span>
+    </button>
+    <button id="collectAllBtn">치지직 전체 집계 실행</button>
+  </div>
 </header>
+<div id="agentHelp" class="agent-help" style="display:none"></div>
 
 <div class="platform-tabs">
   <button class="platform-btn active" data-platform="naverchzzk">치지직</button>

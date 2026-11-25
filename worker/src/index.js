@@ -80,6 +80,73 @@ async function upsertRecord(db, streamerId, yearMonth, stats) {
     .run();
 }
 
+// ---- 집계 PC(에이전트) 접속 상태 ----
+// 에이전트는 대기 중엔 3초마다 next-job을, 작업 중엔 15초마다 ping을 보낸다.
+// 그래서 마지막 신호가 이 시간 안에 있으면 "켜져 있음"으로 본다.
+const AGENT_ONLINE_SECONDS = 45;
+// 가장 긴 작업(collect_all) 제한이 30분이라, 이보다 오래 running인 job은 에이전트가
+// 도중에 꺼진 것으로 보고 실패 처리한다(안 그러면 영원히 '진행 중'으로 남는다).
+const STALE_RUNNING_MINUTES = 40;
+
+function agentNameFrom(request) {
+  const raw = request.headers.get('x-agent-name');
+  if (!raw) return '기존 에이전트';
+  try {
+    return decodeURIComponent(raw).slice(0, 60);
+  } catch (e) {
+    return raw.slice(0, 60);
+  }
+}
+
+// agents 테이블은 마이그레이션(migrations/0001_agents.sql)으로 추가된다. 적용 전이어도
+// 기존 집계 흐름은 그대로 돌아가야 하므로, 이 부분의 오류는 삼킨다.
+async function touchAgent(db, name, platforms, currentJobId) {
+  try {
+    await db
+      .prepare(
+        `INSERT INTO agents (name, platforms, current_job_id, last_seen) VALUES (?, ?, ?, datetime('now'))
+         ON CONFLICT(name) DO UPDATE SET platforms = excluded.platforms,
+           current_job_id = excluded.current_job_id, last_seen = excluded.last_seen`
+      )
+      .bind(name, platforms || '', currentJobId ?? null)
+      .run();
+  } catch (e) {}
+}
+
+// 반환: 켜져 있는 에이전트 목록. 상태를 알 수 없으면(테이블 없음) null.
+async function onlineAgents(db) {
+  try {
+    const { results } = await db
+      .prepare(
+        `SELECT name, platforms, current_job_id, last_seen FROM agents
+         WHERE last_seen >= datetime('now', ?) ORDER BY name`
+      )
+      .bind(`-${AGENT_ONLINE_SECONDS} seconds`)
+      .all();
+    return results;
+  } catch (e) {
+    return null;
+  }
+}
+
+function agentHandles(agent, platform) {
+  if (!agent.platforms || !platform) return true;
+  return agent.platforms.split(',').map((p) => p.trim()).includes(platform);
+}
+
+async function reapStaleJobs(db) {
+  await db
+    .prepare(
+      `UPDATE jobs SET status = 'error', result = ?, updated_at = datetime('now')
+       WHERE status = 'running' AND updated_at < datetime('now', ?)`
+    )
+    .bind(
+      JSON.stringify({ error: '집계 PC가 작업 도중 응답이 끊겨 중단되었습니다. 다시 실행해주세요.' }),
+      `-${STALE_RUNNING_MINUTES} minutes`
+    )
+    .run();
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -92,6 +159,23 @@ export default {
       if (auth !== `Bearer ${env.AGENT_SECRET}`) {
         return json({ error: 'unauthorized' }, { status: 401 });
       }
+      const agentName = agentNameFrom(request);
+
+      // 작업 중인 에이전트의 생존 신호 (설치 스크립트의 접속 키 확인에도 쓰인다).
+      if (path === '/agent/ping') {
+        const jobId = Number(url.searchParams.get('job')) || null;
+        if (url.searchParams.has('platform') || jobId) {
+          await touchAgent(db, agentName, url.searchParams.get('platform') || '', jobId);
+          if (jobId) {
+            // 오래 걸리는 작업이 "멈춘 작업"으로 오인돼 정리되지 않도록 갱신 시각을 늘려준다.
+            await db
+              .prepare("UPDATE jobs SET updated_at = datetime('now') WHERE id = ? AND status = 'running'")
+              .bind(jobId)
+              .run();
+          }
+        }
+        return json({ ok: true });
+      }
 
       if (path === '/agent/next-job' && request.method === 'GET') {
         // 이 에이전트가 처리할 수 있는 플랫폼 목록 (예: ?platform=twitch). 안 주면 전부 처리(기존 동작).
@@ -99,6 +183,8 @@ export default {
           .split(',')
           .map((p) => p.trim())
           .filter(Boolean);
+
+        await reapStaleJobs(db);
 
         let job;
         if (platforms.length > 0) {
@@ -124,6 +210,7 @@ export default {
             )
             .first();
         }
+        await touchAgent(db, agentName, platforms.join(','), job ? job.id : null);
         if (!job) return json({ job: null });
 
         const payload = JSON.parse(job.payload);
@@ -425,11 +512,40 @@ export default {
       return json({ jobId: job.id });
     }
 
+    if (path === '/api/agents' && request.method === 'GET') {
+      const agents = await onlineAgents(db);
+      return json({ known: agents !== null, agents: agents || [] });
+    }
+
     const jobMatch = path.match(/^\/api\/jobs\/(\d+)$/);
     if (jobMatch && request.method === 'GET') {
       const job = await db.prepare('SELECT * FROM jobs WHERE id = ?').bind(Number(jobMatch[1])).first();
       if (!job) return json({ error: 'not found' }, { status: 404 });
-      return json({ ...job, result: job.result ? JSON.parse(job.result) : null });
+      const extra = {};
+      if (job.status === 'pending') {
+        // 화면에서 "켜진 집계 PC가 없다" / "앞에 n개 작업 대기 중"을 보여주기 위한 정보.
+        const agents = await onlineAgents(db);
+        extra.agentsOnline = agents === null ? null : agents.filter((a) => agentHandles(a, job.platform)).length;
+        const { n } = await db
+          .prepare("SELECT COUNT(*) AS n FROM jobs WHERE status IN ('pending', 'running') AND id < ?")
+          .bind(job.id)
+          .first();
+        extra.queueAhead = n;
+      }
+      return json({ ...job, ...extra, result: job.result ? JSON.parse(job.result) : null });
+    }
+
+    // 아직 아무 PC도 가져가지 않은 작업만 취소할 수 있다 — 켜진 PC가 없을 때 작업이 쌓여 있다가
+    // 며칠 뒤 누군가 PC를 켰을 때 뒤늦게 실행되는 것을 막는다.
+    const cancelMatch = path.match(/^\/api\/jobs\/(\d+)\/cancel$/);
+    if (cancelMatch && request.method === 'POST') {
+      const res = await db
+        .prepare(
+          "UPDATE jobs SET status = 'error', result = ?, updated_at = datetime('now') WHERE id = ? AND status = 'pending'"
+        )
+        .bind(JSON.stringify({ error: '취소됨' }), Number(cancelMatch[1]))
+        .run();
+      return json({ ok: true, cancelled: res.meta.changes > 0 });
     }
 
     // ---- 치지직 스트리머 심사 명단 ----
